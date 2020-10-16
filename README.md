@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/55851714.svg)](https://zenodo.org/badge/latestdoi/55851714)
+
 # RIR-Generator
 
 The image method, proposed by Allen and Berkley in 1979 [1], is probably one of the most frequently used methods in the acoustic signal processing community to create synthetic room impulse responses. 
