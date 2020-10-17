@@ -1,0 +1,310 @@
+/*
+Program     : Room Impulse Response Generator
+
+Description : Computes the response of an acoustic source to one or more
+              microphones in a reverberant room using the image method [1,2].
+
+              [1] J.B. Allen and D.A. Berkley,
+              Image method for efficiently simulating small-room acoustics,
+              Journal Acoustic Society of America, 65(4), April 1979, p 943.
+
+              [2] P.M. Peterson,
+              Simulating the response of multiple microphones to a single
+              acoustic source in a reverberant room, Journal Acoustic
+              Society of America, 80(5), November 1986.
+
+Author      : dr.ir. E.A.P. Habets (e.habets@ieee.org)
+
+Version     : 2.1.20141124
+
+History     : 1.0.20030606 Initial version
+              1.1.20040803 + Microphone directivity
+                           + Improved phase accuracy [2]
+              1.2.20040312 + Reflection order
+              1.3.20050930 + Reverberation Time
+              1.4.20051114 + Supports multi-channels
+              1.5.20051116 + High-pass filter [1]
+                           + Microphone directivity control
+              1.6.20060327 + Minor improvements
+              1.7.20060531 + Minor improvements
+              1.8.20080713 + Minor improvements
+              1.9.20090822 + 3D microphone directivity control
+              2.0.20100920 + Calculation of the source-image position
+                             changed in the code and tutorial.
+                             This ensures a proper response to reflections
+                             in case a directional microphone is used.
+              2.1.20120318 + Avoid the use of unallocated memory
+              2.1.20140721 + Fixed computation of alpha
+              2.1.20141124 + The window and sinc are now both centered
+                             around t=0
+
+MIT License
+
+Copyright (C) 2003-2014 E.A.P. Habets
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#define _USE_MATH_DEFINES
+
+#include "matrix.h"
+#include "mex.h"
+#include "math.h"
+#include "rir_generator.h"
+
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+    if (nrhs == 0)
+    {
+        mexPrintf("--------------------------------------------------------------------\n"
+            "| Room Impulse Response Generator                                  |\n"
+            "|                                                                  |\n"
+            "| Computes the response of an acoustic source to one or more       |\n"
+            "| microphones in a reverberant room using the image method [1,2].  |\n"
+            "|                                                                  |\n"
+            "| Author    : dr.ir. Emanuel Habets (ehabets@dereverberation.org)  |\n"
+            "|                                                                  |\n"
+            "| Version   : 2.1.20141124                                         |\n"
+            "|                                                                  |\n"
+            "| Copyright (C) 2003-2014 E.A.P. Habets                            |\n"
+            "|                                                                  |\n"
+            "| [1] J.B. Allen and D.A. Berkley,                                 |\n"
+            "|     Image method for efficiently simulating small-room acoustics,|\n"
+            "|     Journal Acoustic Society of America,                         |\n"
+            "|     65(4), April 1979, p 943.                                    |\n"
+            "|                                                                  |\n"
+            "| [2] P.M. Peterson,                                               |\n"
+            "|     Simulating the response of multiple microphones to a single  |\n"
+            "|     acoustic source in a reverberant room, Journal Acoustic      |\n"
+            "|     Society of America, 80(5), November 1986.                    |\n"
+            "--------------------------------------------------------------------\n\n"
+            "function [h, beta_hat] = rir_generator(c, fs, r, s, L, beta, nsample,\n"
+            " mtype, order, dim, orientation, hp_filter);\n\n"
+            "Input parameters:\n"
+            " c           : sound velocity in m/s.\n"
+            " fs          : sampling frequency in Hz.\n"
+            " r           : M x 3 array specifying the (x,y,z) coordinates of the\n"
+            "               receiver(s) in m.\n"
+            " s           : 1 x 3 vector specifying the (x,y,z) coordinates of the\n"
+            "               source in m.\n"
+            " L           : 1 x 3 vector specifying the room dimensions (x,y,z) in m.\n"
+            " beta        : 1 x 6 vector specifying the reflection coefficients\n"
+            "               [beta_x1 beta_x2 beta_y1 beta_y2 beta_z1 beta_z2] or\n"
+            "               beta = reverberation time (T_60) in seconds.\n"
+            " nsample     : number of samples to calculate, default is T_60*fs.\n"
+            " mtype       : [omnidirectional, subcardioid, cardioid, hypercardioid,\n"
+            "               bidirectional], default is omnidirectional.\n"
+            " order       : reflection order, default is -1, i.e. maximum order.\n"
+            " dim         : room dimension (2 or 3), default is 3.\n"
+            " orientation : direction in which the microphones are pointed, specified using\n"
+            "               azimuth and elevation angles (in radians), default is [0 0].\n"
+            " hp_filter   : use 'false' to disable high-pass filter, the high-pass filter\n"
+            "               is enabled by default.\n\n"
+            "Output parameters:\n"
+            " h           : M x nsample matrix containing the calculated room impulse\n"
+            "               response(s).\n"
+            " beta_hat    : In case a reverberation time is specified as an input parameter\n"
+            "               the corresponding reflection coefficient is returned.\n\n");
+        return;
+    }
+    else
+    {
+        mexPrintf("Room Impulse Response Generator (Version 2.1.20141124) by Emanuel Habets\n"
+            "Copyright (C) 2003-2014 E.A.P. Habets\n");
+    }
+
+    // Check for proper number of arguments
+    if (nrhs < 6)
+        mexErrMsgTxt("Error: There are at least six input parameters required.");
+    if (nrhs > 12)
+        mexErrMsgTxt("Error: Too many input arguments.");
+    if (nlhs > 2)
+        mexErrMsgTxt("Error: Too many output arguments.");
+
+    // Check for proper arguments
+    if (!(mxGetN(prhs[0])==1) || !mxIsDouble(prhs[0]) || mxIsComplex(prhs[0]))
+        mexErrMsgTxt("Invalid input arguments!");
+    if (!(mxGetN(prhs[1])==1) || !mxIsDouble(prhs[1]) || mxIsComplex(prhs[1]))
+        mexErrMsgTxt("Invalid input arguments!");
+    if (!(mxGetN(prhs[2])==3) || !mxIsDouble(prhs[2]) || mxIsComplex(prhs[2]))
+        mexErrMsgTxt("Invalid input arguments!");
+    if (!(mxGetN(prhs[3])==3) || !mxIsDouble(prhs[3]) || mxIsComplex(prhs[3]))
+        mexErrMsgTxt("Invalid input arguments!");
+    if (!(mxGetN(prhs[4])==3) || !mxIsDouble(prhs[4]) || mxIsComplex(prhs[4]))
+        mexErrMsgTxt("Invalid input arguments!");
+    if (!(mxGetN(prhs[5])==6 || mxGetN(prhs[5])==1) || !mxIsDouble(prhs[5]) || mxIsComplex(prhs[5]))
+        mexErrMsgTxt("Invalid input arguments!");
+
+    // Load parameters
+    double          c = mxGetScalar(prhs[0]);
+    double          fs = mxGetScalar(prhs[1]);
+    const double*   rr = mxGetPr(prhs[2]);
+    int             nMicrophones = (int) mxGetM(prhs[2]);
+    const double*   ss = mxGetPr(prhs[3]);
+    const double*   LL = mxGetPr(prhs[4]);
+    const double*   beta_input = mxGetPr(prhs[5]);
+    double*         beta = new double[6];
+    int             nSamples;
+    char*           microphone_type;
+    int             nOrder;
+    int             nDimension;
+    double          angle[2];
+    int             isHighPassFilter;
+    double          reverberation_time = 0;
+
+    // Reflection coefficients or reverberation time?
+    if (mxGetN(prhs[5])==1)
+    {
+        double V = LL[0]*LL[1]*LL[2];
+        double S = 2*(LL[0]*LL[2]+LL[1]*LL[2]+LL[0]*LL[1]);
+        reverberation_time = beta_input[0];
+        if (reverberation_time != 0) {
+            double alfa = 24*V*log(10.0)/(c*S*reverberation_time);
+            if (alfa > 1)
+                mexErrMsgTxt("Error: The reflection coefficients cannot be calculated using the current "
+                             "room parameters, i.e. room size and reverberation time.\n           Please "
+                             "specify the reflection coefficients or change the room parameters.");
+            for (int i=0;i<6;i++)
+                beta[i] = sqrt(1-alfa);
+        }
+        else
+        {
+            for (int i=0;i<6;i++)
+                beta[i] = 0;
+        }
+    }
+    else
+    {
+        for (int i=0;i<6;i++)
+            beta[i] = beta_input[i];
+    }
+
+    // High-pass filter (optional)
+    if (nrhs > 11 &&  mxIsEmpty(prhs[11]) == false)
+    {
+        isHighPassFilter = (int) mxGetScalar(prhs[11]);
+    }
+    else
+    {
+        isHighPassFilter = 1;
+    }
+
+    // 3D Microphone orientation (optional)
+    if (nrhs > 10 &&  mxIsEmpty(prhs[10]) == false)
+    {
+        const double* orientation = mxGetPr(prhs[10]);
+        if (mxGetN(prhs[10]) == 1)
+        {
+            angle[0] = orientation[0];
+            angle[1] = 0;
+        }
+        else
+        {
+            angle[0] = orientation[0];
+            angle[1] = orientation[1];
+        }
+    }
+    else
+    {
+        angle[0] = 0;
+        angle[1] = 0;
+    }
+
+    // Room Dimension (optional)
+    if (nrhs > 9 &&  mxIsEmpty(prhs[9]) == false)
+    {
+        nDimension = (int) mxGetScalar(prhs[9]);
+        if (nDimension != 2 && nDimension != 3)
+            mexErrMsgTxt("Invalid input arguments!");
+
+        if (nDimension == 2)
+        {
+            beta[4] = 0;
+            beta[5] = 0;
+        }
+    }
+    else
+    {
+        nDimension = 3;
+    }
+
+    // Reflection order (optional)
+    if (nrhs > 8 &&  mxIsEmpty(prhs[8]) == false)
+    {
+        nOrder = (int) mxGetScalar(prhs[8]);
+        if (nOrder < -1)
+            mexErrMsgTxt("Invalid input arguments!");
+    }
+    else
+    {
+        nOrder = -1;
+    }
+
+    // Type of microphone (optional)
+    if (nrhs > 7 &&  mxIsEmpty(prhs[7]) == false)
+    {
+        microphone_type = new char[mxGetN(prhs[7])+1];
+        mxGetString(prhs[7], microphone_type, mxGetN(prhs[7])+1);
+    }
+    else
+    {
+        microphone_type = new char[1];
+        microphone_type[0] = 'o';
+    }
+
+    // Number of samples (optional)
+    if (nrhs > 6 &&  mxIsEmpty(prhs[6]) == false)
+    {
+        nSamples = (int) mxGetScalar(prhs[6]);
+    }
+    else
+    {
+        if (mxGetN(prhs[5])>1)
+        {
+            double V = LL[0]*LL[1]*LL[2];
+            double alpha = ((1-pow(beta[0],2))+(1-pow(beta[1],2)))*LL[1]*LL[2] +
+                ((1-pow(beta[2],2))+(1-pow(beta[3],2)))*LL[0]*LL[2] +
+                ((1-pow(beta[4],2))+(1-pow(beta[5],2)))*LL[0]*LL[1];
+            reverberation_time = 24*log(10.0)*V/(c*alpha);
+            if (reverberation_time < 0.128)
+                reverberation_time = 0.128;
+        }
+        nSamples = (int) (reverberation_time * fs);
+    }
+
+    // Create output vector
+    plhs[0] = mxCreateDoubleMatrix(nMicrophones, nSamples, mxREAL);
+    double* imp = mxGetPr(plhs[0]);
+
+    computeRIR(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type, nOrder, angle, isHighPassFilter);
+
+    if (nlhs > 1) {
+        plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
+        double* beta_hat = mxGetPr(plhs[1]);
+        if (reverberation_time != 0) {
+            beta_hat[0] = beta[0];
+        }
+        else {
+            beta_hat[0] = 0;
+        }
+    }
+
+    delete[] beta;
+    delete[] microphone_type;
+}
