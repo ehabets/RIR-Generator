@@ -125,6 +125,8 @@ double sim_microphone(double x, double y, double z, double* angle, char mtype)
     }
 }
 
+extern "C" {
+
 void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, int nSamples, double* ss, double* LL, double* beta, char microphone_type, int nOrder, double* angle, int isHighPassFilter){
 
     // Temporary variables and constants (high-pass filter)
@@ -239,4 +241,6 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
     }
 
     delete[] LPI;
+}
+
 }
