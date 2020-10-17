@@ -109,6 +109,8 @@ double sim_microphone(double x, double y, double z, double* angle, char mtype)
         case 's':
             rho = 0.75;
             break;
+        default:
+            rho = 1;
         };
 
         vartheta = acos(z/sqrt(pow(x,2)+pow(y,2)+pow(z,2)));
