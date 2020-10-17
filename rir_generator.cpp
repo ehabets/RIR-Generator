@@ -66,6 +66,7 @@ SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 #include "math.h"
+#include "rir_generator.h"
 
 #define ROUND(x) ((x)>=0?(long)((x)+0.5):(long)((x)-0.5))
 
@@ -126,8 +127,6 @@ double sim_microphone(double x, double y, double z, double* angle, char mtype)
         return 1;
     }
 }
-
-extern "C" {
 
 void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, int nSamples, double* ss, double* LL, double* beta, char microphone_type, int nOrder, double* angle, int isHighPassFilter){
 
@@ -243,6 +242,4 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
     }
 
     delete[] LPI;
-}
-
 }
