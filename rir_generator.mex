@@ -159,7 +159,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const double*   ss = mxGetPr(prhs[3]);
     const double*   LL = mxGetPr(prhs[4]);
     const double*   beta_input = mxGetPr(prhs[5]);
-    double*         beta = new double[6];
+    double          beta[6];
     int             nSamples;
     char*           microphone_type;
     int             nOrder;
@@ -292,7 +292,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[0] = mxCreateDoubleMatrix(nMicrophones, nSamples, mxREAL);
     double* imp = mxGetPr(plhs[0]);
 
-    computeRIR(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type, nOrder, angle, isHighPassFilter);
+    computeRIR(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type[0], nOrder, angle, isHighPassFilter);
 
     if (nlhs > 1) {
         plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
@@ -305,6 +305,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
     }
 
-    delete[] beta;
     delete[] microphone_type;
 }

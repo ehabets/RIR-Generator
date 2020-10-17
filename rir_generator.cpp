@@ -134,16 +134,16 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
     const double B2 = -R1 * R1;
     const double A1 = -(1+R1);
     double       X0;
-    double*      Y = new double[3];
+    double       Y[3];
 
     // Temporary variables and constants (image-method)
     const double Fc = 1; // The cut-off frequency equals fs/2 - Fc is the normalized cut-off frequency.
     const int    Tw = 2 * ROUND(0.004*fs); // The width of the low-pass FIR equals 8 ms
     const double cTs = c/fs;
     double*      LPI = new double[Tw];
-    double*      r = new double[3];
-    double*      s = new double[3];
-    double*      L = new double[3];
+    double       r[3];
+    double       s[3];
+    double       L[3];
     double       Rm[3];
     double       Rp_plus_Rm[3];
     double       refl[3];
@@ -204,7 +204,7 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
                                     fdist = floor(dist);
                                     if (fdist < nSamples)
                                     {
-                                        gain = sim_microphone(Rp_plus_Rm[0], Rp_plus_Rm[1], Rp_plus_Rm[2], angle, microphone_type[0])
+                                        gain = sim_microphone(Rp_plus_Rm[0], Rp_plus_Rm[1], Rp_plus_Rm[2], angle, microphone_type)
                                             * refl[0]*refl[1]*refl[2]/(4*M_PI*dist*cTs);
 
                                         for (n = 0 ; n < Tw ; n++)
@@ -238,9 +238,5 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
         }
     }
 
-    delete[] Y;
     delete[] LPI;
-    delete[] r;
-    delete[] s;
-    delete[] L;
 }
