@@ -349,6 +349,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[0] = mxCreateDoubleMatrix(nMicrophones, nSamples, mxREAL);
     double* imp = mxGetPr(plhs[0]);
 
+    computeRIR(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type, nOrder, angle, isHighPassFilter);
+
+    if (nlhs > 1) {
+        plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
+        double* beta_hat = mxGetPr(plhs[1]);
+        if (reverberation_time != 0) {
+            beta_hat[0] = beta[0];
+        }
+        else {
+            beta_hat[0] = 0;
+        }
+    }
+
+    delete[] beta;
+    delete[] microphone_type;
+}
+
+void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, int nSamples, double* ss, double* LL, double* beta, char microphone_type, int nOrder, double* angle, int isHighPassFilter){
+
     // Temporary variables and constants (high-pass filter)
     const double W = 2*M_PI*100/fs; // The cut-off frequency equals 100 Hz
     const double R1 = exp(-W);
@@ -460,19 +479,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
     }
 
-    if (nlhs > 1) {
-        plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
-        double* beta_hat = mxGetPr(plhs[1]);
-        if (reverberation_time != 0) {
-            beta_hat[0] = beta[0];
-        }
-        else {
-            beta_hat[0] = 0;
-        }
-    }
-
-    delete[] beta;
-    delete[] microphone_type;
     delete[] Y;
     delete[] LPI;
     delete[] r;
