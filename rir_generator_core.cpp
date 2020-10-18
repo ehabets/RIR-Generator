@@ -66,7 +66,7 @@ SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 #include "math.h"
-#include "rir_generator.h"
+#include "rir_generator_core.h"
 
 #define ROUND(x) ((x)>=0?(long)((x)+0.5):(long)((x)-0.5))
 

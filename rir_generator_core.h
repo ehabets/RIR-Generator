@@ -1,5 +1,5 @@
-#ifndef RIR_GENERATOR_H
-#define RIR_GENERATOR_H
+#ifndef RIR_GENERATOR_CORE_H
+#define RIR_GENERATOR_CORE_H
 
 #include <stdio.h>
 
