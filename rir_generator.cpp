@@ -91,11 +91,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Load parameters
     double          c = mxGetScalar(prhs[0]);
     double          fs = mxGetScalar(prhs[1]);
-    const double*   rr = mxGetPr(prhs[2]);
+    double*         rr = mxGetPr(prhs[2]);
     int             nMicrophones = (int) mxGetM(prhs[2]);
-    const double*   ss = mxGetPr(prhs[3]);
-    const double*   LL = mxGetPr(prhs[4]);
-    const double*   beta_input = mxGetPr(prhs[5]);
+    double*         ss = mxGetPr(prhs[3]);
+    double*         LL = mxGetPr(prhs[4]);
+    double*         beta_input = mxGetPr(prhs[5]);
     double          beta[6];
     int             nSamples;
     char*           microphone_type;
@@ -145,7 +145,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // 3D Microphone orientation (optional)
     if (nrhs > 10 &&  mxIsEmpty(prhs[10]) == false)
     {
-        const double* orientation = mxGetPr(prhs[10]);
+        double* orientation = mxGetPr(prhs[10]);
         if (mxGetN(prhs[10]) == 1)
         {
             angle[0] = orientation[0];
