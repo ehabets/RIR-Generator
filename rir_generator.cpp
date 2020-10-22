@@ -101,7 +101,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     char*           microphone_type;
     int             nOrder;
     int             nDimension;
-    double          angle[2];
+    double          microphone_angle[2];
     int             isHighPassFilter;
     double          reverberation_time = 0;
 
@@ -148,19 +148,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         double* orientation = mxGetPr(prhs[10]);
         if (mxGetN(prhs[10]) == 1)
         {
-            angle[0] = orientation[0];
-            angle[1] = 0;
+            microphone_angle[0] = orientation[0];
+            microphone_angle[1] = 0;
         }
         else
         {
-            angle[0] = orientation[0];
-            angle[1] = orientation[1];
+            microphone_angle[0] = orientation[0];
+            microphone_angle[1] = orientation[1];
         }
     }
     else
     {
-        angle[0] = 0;
-        angle[1] = 0;
+        microphone_angle[0] = 0;
+        microphone_angle[1] = 0;
     }
 
     // Room Dimension (optional)
@@ -229,7 +229,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[0] = mxCreateDoubleMatrix(nMicrophones, nSamples, mxREAL);
     double* imp = mxGetPr(plhs[0]);
 
-    computeRIR(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type[0], nOrder, angle, isHighPassFilter);
+    computeRIR(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type[0], nOrder, microphone_angle, isHighPassFilter);
 
     if (nlhs > 1) {
         plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);

@@ -83,7 +83,7 @@ double sinc(double x)
         return(sin(x)/x);
 }
 
-double sim_microphone(double x, double y, double z, double* angle, char mtype)
+double sim_microphone(double x, double y, double z, double* microphone_angle, char mtype)
 {
     if (mtype=='b' || mtype=='c' || mtype=='s' || mtype=='h')
     {
@@ -118,7 +118,7 @@ double sim_microphone(double x, double y, double z, double* angle, char mtype)
         vartheta = acos(z/sqrt(pow(x,2)+pow(y,2)+pow(z,2)));
         varphi = atan2(y,x);
 
-        gain = sin(M_PI/2-angle[1]) * sin(vartheta) * cos(angle[0]-varphi) + cos(M_PI/2-angle[1]) * cos(vartheta);
+        gain = sin(M_PI/2-microphone_angle[1]) * sin(vartheta) * cos(microphone_angle[0]-varphi) + cos(M_PI/2-microphone_angle[1]) * cos(vartheta);
         gain = rho + (1-rho) * gain;
 
         return gain;
@@ -129,7 +129,7 @@ double sim_microphone(double x, double y, double z, double* angle, char mtype)
     }
 }
 
-void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, int nSamples, double* ss, double* LL, double* beta, char microphone_type, int nOrder, double* angle, int isHighPassFilter){
+void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, int nSamples, double* ss, double* LL, double* beta, char microphone_type, int nOrder, double* microphone_angle, int isHighPassFilter){
 
     // Temporary variables and constants (high-pass filter)
     const double W = 2*M_PI*100/fs; // The cut-off frequency equals 100 Hz
@@ -208,7 +208,7 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
                                     fdist = floor(dist);
                                     if (fdist < nSamples)
                                     {
-                                        gain = sim_microphone(Rp_plus_Rm[0], Rp_plus_Rm[1], Rp_plus_Rm[2], angle, microphone_type)
+                                        gain = sim_microphone(Rp_plus_Rm[0], Rp_plus_Rm[1], Rp_plus_Rm[2], microphone_angle, microphone_type)
                                             * refl[0]*refl[1]*refl[2]/(4*M_PI*dist*cTs);
 
                                         for (n = 0 ; n < Tw ; n++)
