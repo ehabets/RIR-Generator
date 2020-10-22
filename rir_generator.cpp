@@ -15,7 +15,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             "| Computes the response of an acoustic source to one or more       |\n"
             "| microphones in a reverberant room using the image method [1,2].  |\n"
             "|                                                                  |\n"
-            "| Author    : dr.ir. Emanuel Habets (ehabets@dereverberation.org)  |\n"
+            "| Author    : dr.ir. Emanuel Habets (e.habets@ieee.org)            |\n"
             "|                                                                  |\n"
             "| Version   : 2.1.20141124                                         |\n"
             "|                                                                  |\n"
