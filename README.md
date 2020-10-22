@@ -10,4 +10,16 @@ This repository includes a tutorial, MATLAB examples, and the source code of the
 
 More information can be found [here](https://www.audiolabs-erlangen.de/fau/professor/habets/software/rir-generator).
 
+# Compile mex-function in MATLAB
+
+Run
+
+<code>
+ mex -setup -C++
+  
+ mex rir_generator.cpp rir_generator_core.cpp
+</code>
+
+# References
+
 1. J.B. Allen and D.A. Berkley, "Image method for efficiently simulating small-room acoustics," Journal Acoustic Society of America, 65(4), April 1979, p 943.
