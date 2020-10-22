@@ -17,9 +17,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             "|                                                                  |\n"
             "| Author    : dr.ir. Emanuel Habets (e.habets@ieee.org)            |\n"
             "|                                                                  |\n"
-            "| Version   : 2.1.20141124                                         |\n"
+            "| Version   : 2.2.20201022                                         |\n"
             "|                                                                  |\n"
-            "| Copyright (C) 2003-2014 E.A.P. Habets                            |\n"
+            "| Copyright (C) 2003-2020 E.A.P. Habets                            |\n"
             "|                                                                  |\n"
             "| [1] J.B. Allen and D.A. Berkley,                                 |\n"
             "|     Image method for efficiently simulating small-room acoustics,|\n"
@@ -62,8 +62,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     else
     {
-        mexPrintf("Room Impulse Response Generator (Version 2.1.20141124) by Emanuel Habets\n"
-            "Copyright (C) 2003-2014 E.A.P. Habets\n");
+        mexPrintf("Room Impulse Response Generator (Version 2.2.20201022) by Emanuel Habets\n"
+            "Copyright (C) 2003-2020 E.A.P. Habets\n");
     }
 
     // Check for proper number of arguments

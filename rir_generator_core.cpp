@@ -15,7 +15,7 @@ Description : Computes the response of an acoustic source to one or more
 
 Author      : dr.ir. E.A.P. Habets (e.habets@ieee.org)
 
-Version     : 2.1.20141124
+Version     : 2.2.20201022
 
 History     : 1.0.20030606 Initial version
               1.1.20040803 + Microphone directivity
@@ -37,10 +37,11 @@ History     : 1.0.20030606 Initial version
               2.1.20140721 + Fixed computation of alpha
               2.1.20141124 + The window and sinc are now both centered
                              around t=0
+              2.2.20201022 + Fixed arrival time
 
 MIT License
 
-Copyright (C) 2003-2014 E.A.P. Habets
+Copyright (C) 2003-2020 E.A.P. Habets
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -140,7 +141,7 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
     double       Y[3];
 
     // Temporary variables and constants (image-method)
-    const double Fc = 1; // The cut-off frequency equals fs/2 - Fc is the normalized cut-off frequency.
+    const double Fc = 0.5; // The normalized cut-off frequency equals (fs/2) / fs = 0.5
     const int    Tw = 2 * ROUND(0.004*fs); // The width of the low-pass FIR equals 8 ms
     const double cTs = c/fs;
     double*      LPI = new double[Tw];
@@ -211,8 +212,10 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
                                             * refl[0]*refl[1]*refl[2]/(4*M_PI*dist*cTs);
 
                                         for (n = 0 ; n < Tw ; n++)
-                                            LPI[n] =  0.5 * (1 - cos(2*M_PI*((n+1-(dist-fdist))/Tw))) * Fc * sinc(M_PI*Fc*(n+1-(dist-fdist)-(Tw/2)));
-
+                                        {
+                                            const double t = (n-0.5*Tw+1) - (dist-fdist);
+                                            LPI[n] = 0.5 * (1.0 + cos(2.0*M_PI*t/Tw)) * 2.0*Fc * sinc(M_PI*2.0*Fc*t);                                            
+                                        }
                                         startPosition = (int) fdist-(Tw/2)+1;
                                         for (n = 0 ; n < Tw; n++)
                                             if (startPosition+n >= 0 && startPosition+n < nSamples)
