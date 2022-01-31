@@ -15,7 +15,7 @@ More information can be found [here](https://www.audiolabs-erlangen.de/fau/profe
 Run
 
 <code>
- mex -setup -C++
+ mex -setup C++
   
  mex rir_generator.cpp rir_generator_core.cpp
 </code>
