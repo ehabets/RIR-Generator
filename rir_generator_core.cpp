@@ -66,6 +66,7 @@ SOFTWARE.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
 #include "math.h"
 #include "rir_generator_core.h"
 
@@ -129,6 +130,7 @@ double sim_microphone(double x, double y, double z, double* microphone_angle, ch
     }
 }
 
+//Compute regular RIR 
 void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, int nSamples, double* ss, double* LL, double* beta, char microphone_type, int nOrder, double* microphone_angle, int isHighPassFilter){
 
     // Temporary variables and constants (high-pass filter)
@@ -245,4 +247,48 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
     }
 
     delete[] LPI;
+}
+//Compute RIR if the microphone is outside the room
+void computeRIROutside(double* imp, double c, double fs, double* rr, int nMicrophones, int nSamples, double* ss, double* LL, double* beta, char microphone_type, int nOrder, double* microphone_angle, int isHighPassFilter){
+    //create variables
+    int sample = 10; //number of samples accross a wall
+    double newRR[3] = {0 ,0 ,0}; //new microphone placement
+    double midpointWall[6][3]{
+        {0,LL[1]/2,LL[2]/2},
+        {LL[0],LL[1]/2,LL[2]/2},
+        {LL[0]/2,0,LL[2]/2},
+        {LL[0]/2,LL[1],LL[2]/2},
+        {LL[0]/2,LL[1]/2,0},
+        {LL[0]/2,LL[1]/2,LL[2]}
+    }; //x0,x1,y0,y1,z0,z1
+    double distWalltoDest[6];
+    double mindistval = 0;
+    int min = 0;//index of min dist
+    double startPointWall[3];
+    double* sampleDist = new double[10];
+    //Figure out which wall we aprroximate accross
+    //calculate midpoints of all six walls and then calculate distance from midpoints to dest
+    
+    for(int ind = 0 ; ind < 6; ind++){
+        std::cout<< "Wall midpoint ind, value: "<< ind << ", "<< *(midpointWall[ind]) << '\n';
+        //calculate distance 
+        double xcomp = pow(rr[0]-midpointWall[ind][0],2);
+        double ycomp = pow(rr[1]-midpointWall[ind][1],2);
+        double zcomp = pow(rr[2]-midpointWall[ind][2],2);
+        distWalltoDest[ind] = sqrt(xcomp + ycomp + zcomp);
+        if(ind == 0 || mindistval > distWalltoDest[ind]){
+            min = ind; 
+            mindistval = distWalltoDest[ind];
+        }
+    }
+    std::cout << "CLOSEST WALL AND DISTANCE: " << min << ", " << mindistval <<'\n';
+    //switch case to set up sampleRR starting point
+    switch(min){
+        case 0:
+            newRR[2] = LL[2]/2;
+            break;
+    }
+    //loop throughout wall for number of samples, find RIR values, find distance between sample and final dest
+    //sum each signal taking into account time delay
+    
 }

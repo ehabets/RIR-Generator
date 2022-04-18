@@ -12,3 +12,4 @@ orientation = 0;            % Microphone orientation (rad)
 hp_filter = 1;              % Enable high-pass filter
 
 h = rir_generator(c, fs, r, s, L, beta, n, mtype, order, dim, orientation, hp_filter);
+sound(h)

@@ -4,6 +4,7 @@
 #include "mex.h"
 #include "math.h"
 #include "rir_generator_core.h"
+#include <iostream>
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -91,10 +92,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Load parameters
     double          c = mxGetScalar(prhs[0]);
     double          fs = mxGetScalar(prhs[1]);
-    double*         rr = mxGetPr(prhs[2]);
+    double*         rr = mxGetPr(prhs[2]); //parameter for Microphone Location 
     int             nMicrophones = (int) mxGetM(prhs[2]);
     double*         ss = mxGetPr(prhs[3]);
-    double*         LL = mxGetPr(prhs[4]);
+    double*         LL = mxGetPr(prhs[4]); //Parameter for 
     double*         beta_input = mxGetPr(prhs[5]);
     double          beta[6];
     int             nSamples;
@@ -228,9 +229,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Create output vector
     plhs[0] = mxCreateDoubleMatrix(nMicrophones, nSamples, mxREAL);
     double* imp = mxGetPr(plhs[0]);
-
-    computeRIR(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type[0], nOrder, microphone_angle, isHighPassFilter);
-
+    
+    std::cout << "Microphone Location: " << rr[0] << ", "<< rr[1]<< ", " << rr[2] << ", "<< nMicrophones << '\n';
+    std::cout << "Room Max Wall Location: " << LL[0] << ", "<< LL[1]<< ", " << LL[2] << '\n';
+    if((rr[0] >= 0 && rr[1] >= 0 && rr[2] >= 0) && (rr[0] <= LL[0] && rr[1] <= LL[1] && rr[2] <= LL[2])){//if the microphone is within the room
+        std::cout << "Microphone inside of the room! \n";
+        computeRIR(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type[0], nOrder, microphone_angle, isHighPassFilter);
+    }
+    else{
+        std::cout << "Microphone outside of the room! \n";
+        computeRIROutside(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type[0], nOrder, microphone_angle, isHighPassFilter);
+    }
+    
     if (nlhs > 1) {
         plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
         double* beta_hat = mxGetPr(plhs[1]);
