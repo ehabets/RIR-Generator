@@ -17,7 +17,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             "|                                                                  |\n"
             "| Author    : dr.ir. Emanuel Habets (e.habets@ieee.org)            |\n"
             "|                                                                  |\n"
-            "| Version   : 2.2.20201022                                         |\n"
+            "| Version   : 2.3.20231220                                         |\n"
             "|                                                                  |\n"
             "| Copyright (C) 2003-2020 E.A.P. Habets                            |\n"
             "|                                                                  |\n"
@@ -62,8 +62,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     else
     {
-        mexPrintf("Room Impulse Response Generator (Version 2.2.20201022) by Emanuel Habets\n"
-            "Copyright (C) 2003-2020 E.A.P. Habets\n");
+        mexPrintf("Room Impulse Response Generator (Version 2.3.20231220) by Emanuel Habets\n"
+            "Copyright (C) 2003-2023 E.A.P. Habets\n");
     }
 
     // Check for proper number of arguments
@@ -196,8 +196,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Type of microphone (optional)
     if (nrhs > 7 &&  mxIsEmpty(prhs[7]) == false)
     {
-        microphone_type = new char[mxGetN(prhs[7])+1];
-        mxGetString(prhs[7], microphone_type, mxGetN(prhs[7])+1);
+        int return_value;
+        microphone_type = new char[mxGetN(prhs[7])+1];        
+        return_value = mxGetString(prhs[7], microphone_type, mxGetN(prhs[7])+1);
+        if (return_value != 0)
+        {
+            mexErrMsgTxt("The input parameter mtype is not a character array!");
+        }
     }
     else
     {
