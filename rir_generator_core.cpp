@@ -15,7 +15,7 @@ Description : Computes the response of an acoustic source to one or more
 
 Author      : dr.ir. E.A.P. Habets (e.habets@ieee.org)
 
-Version     : 2.2.20201022
+Version     : 2.3.20241022
 
 History     : 1.0.20030606 Initial version
               1.1.20040803 + Microphone directivity
@@ -38,10 +38,11 @@ History     : 1.0.20030606 Initial version
               2.1.20141124 + The window and sinc are now both centered
                              around t=0
               2.2.20201022 + Fixed arrival time
+			  2.3.20241022 + 3D source directivity control by Yehav Alkaher
 
 MIT License
 
-Copyright (C) 2003-2020 E.A.P. Habets
+Copyright (C) 2003-2025 E.A.P. Habets
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -83,9 +84,9 @@ double sinc(double x)
         return(sin(x)/x);
 }
 
-double sim_microphone(double x, double y, double z, double* microphone_angle, char mtype)
+double sim_directivity(double x, double y, double z, double* angle, char type)
 {
-    if (mtype=='b' || mtype=='c' || mtype=='s' || mtype=='h')
+    if (type=='b' || type=='c' || type=='s' || type=='h')
     {
         double gain, vartheta, varphi, rho;
 
@@ -97,7 +98,7 @@ double sim_microphone(double x, double y, double z, double* microphone_angle, ch
         // Subcardioid           0.75
         // Omnidirectional       1
 
-        switch(mtype)
+        switch(type)
         {
         case 'b':
             rho = 0;
@@ -118,8 +119,23 @@ double sim_microphone(double x, double y, double z, double* microphone_angle, ch
         vartheta = acos(z/sqrt(pow(x,2)+pow(y,2)+pow(z,2)));
         varphi = atan2(y,x);
 
-        gain = sin(M_PI/2-microphone_angle[1]) * sin(vartheta) * cos(microphone_angle[0]-varphi) + cos(M_PI/2-microphone_angle[1]) * cos(vartheta);
+        gain = sin(M_PI/2-angle[1]) * sin(vartheta) * cos(angle[0]-varphi) + cos(M_PI/2-angle[1]) * cos(vartheta);
         gain = rho + (1-rho) * gain;
+
+        return gain;
+    }
+    else if (type=='p') // Custom "highly directional" directivity pattern
+    {
+        double gain, vartheta, varphi;
+
+        vartheta = acos(z/sqrt(pow(x,2)+pow(y,2)+pow(z,2)));
+        varphi = atan2(y,x);
+
+        double gain_theta_phi = exp(8 * (cos(angle[0]-varphi) - 1)) * exp(2 * (cos(2 * ((M_PI/2-angle[1])-vartheta)) - 1));
+        double gain_theta = exp(8 * (cos((M_PI/2-angle[1])-vartheta) - 1));
+        double state_shift_val = exp(1000 * (cos(2 * (M_PI/2-angle[1])) - 1));
+        
+        gain = gain_theta_phi * (1 - state_shift_val) + gain_theta * state_shift_val;
 
         return gain;
     }
@@ -129,7 +145,7 @@ double sim_microphone(double x, double y, double z, double* microphone_angle, ch
     }
 }
 
-void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, int nSamples, double* ss, double* LL, double* beta, char microphone_type, int nOrder, double* microphone_angle, int isHighPassFilter){
+void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, int nSamples, double* ss, double* LL, double* beta, char microphone_type, int nOrder, double* microphone_angle, int isHighPassFilter, char source_type, double* source_angle){
 
     // Temporary variables and constants (high-pass filter)
     const double W = 2*M_PI*100/fs; // The cut-off frequency equals 100 Hz
@@ -143,24 +159,29 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
     // Temporary variables and constants (image-method)
     const double Fc = 0.5; // The normalized cut-off frequency equals (fs/2) / fs = 0.5
     const int    Tw = 2 * ROUND(0.004*fs); // The width of the low-pass FIR equals 8 ms
-    const double cTs = c/fs;
+    const double cTs = c/fs; // [meter/sample]
     double*      LPI = new double[Tw];
-    double       r[3];
-    double       s[3];
-    double       L[3];
-    double       Rm[3];
-    double       Rp_plus_Rm[3];
-    double       refl[3];
+    double       r[3]; // receiver location [samples]
+    double       s[3]; // source location [samples]
+    double       L[3]; // room dimensions [samples]
+    double       Rm[3]; // image borders of room expansion [samples]
+    double       Rp_plus_Rm[3]; // image source location, relative to the receiver [samples]
+    double       refl[3]; // gain reduction by reflection (absorption)
     double       fdist,dist;
     double       gain;
     int          startPosition;
-    int          n1, n2, n3;
+    int          n1, n2, n3; // number of image rooms from each side on each axis
     int          q, j, k;
     int          mx, my, mz;
     int          n;
 
     s[0] = ss[0]/cTs; s[1] = ss[1]/cTs; s[2] = ss[2]/cTs;
     L[0] = LL[0]/cTs; L[1] = LL[1]/cTs; L[2] = LL[2]/cTs;
+
+    // - For room expansion on each direction
+    n1 = (int) ceil(nSamples / (2 * L[0])); // left wall max shifts
+    n2 = (int) ceil(nSamples / (2 * L[1])); // back wall max shifts
+    n3 = (int) ceil(nSamples / (2 * L[2])); // floor max shifts
 
     for (int idxMicrophone = 0; idxMicrophone < nMicrophones ; idxMicrophone++)
     {
@@ -169,11 +190,8 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
         r[1] = rr[idxMicrophone + 1*nMicrophones] / cTs;
         r[2] = rr[idxMicrophone + 2*nMicrophones] / cTs;
 
-        n1 = (int) ceil(nSamples/(2*L[0]));
-        n2 = (int) ceil(nSamples/(2*L[1]));
-        n3 = (int) ceil(nSamples/(2*L[2]));
-
         // Generate room impulse response
+        // Image Expansion of the Source
         for (mx = -n1 ; mx <= n1 ; mx++)
         {
             Rm[0] = 2*mx*L[0];
@@ -186,8 +204,10 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
                 {
                     Rm[2] = 2*mz*L[2];
 
+                    // Image Source Response
                     for (q = 0 ; q <= 1 ; q++)
                     {
+                        // q=0 or q=1 means R- (original) or R+ (image), relative to the left wall location Rm[0].
                         Rp_plus_Rm[0] = (1-2*q)*s[0] - r[0] + Rm[0];
                         refl[0] = pow(beta[0], abs(mx-q)) * pow(beta[1], abs(mx));
 
@@ -208,7 +228,15 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
                                     fdist = floor(dist);
                                     if (fdist < nSamples)
                                     {
-                                        gain = sim_microphone(Rp_plus_Rm[0], Rp_plus_Rm[1], Rp_plus_Rm[2], microphone_angle, microphone_type)
+                                        double source_directivity_pattern = sim_directivity((1 - 2 * q) * Rp_plus_Rm[0],
+                                                                                           (1 - 2 * j) * Rp_plus_Rm[1],
+                                                                                           (1 - 2 * k) * Rp_plus_Rm[2], 
+                                                                                           source_angle, source_type);
+                                        double mic_directivity_pattern = sim_directivity(Rp_plus_Rm[0], 
+                                                                                        Rp_plus_Rm[1], 
+                                                                                        Rp_plus_Rm[2], 
+                                                                                        microphone_angle, microphone_type);
+                                        gain = mic_directivity_pattern * source_directivity_pattern
                                             * refl[0]*refl[1]*refl[2]/(4*M_PI*dist*cTs);
 
                                         for (n = 0 ; n < Tw ; n++)

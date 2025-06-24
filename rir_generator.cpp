@@ -17,9 +17,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             "|                                                                  |\n"
             "| Author    : dr.ir. Emanuel Habets (e.habets@ieee.org)            |\n"
             "|                                                                  |\n"
-            "| Version   : 2.3.20231220                                         |\n"
+            "| Version   : 2.3.20241022                                         |\n"
             "|                                                                  |\n"
-            "| Copyright (C) 2003-2020 E.A.P. Habets                            |\n"
+            "| Copyright (C) 2003-2025 E.A.P. Habets                            |\n"
             "|                                                                  |\n"
             "| [1] J.B. Allen and D.A. Berkley,                                 |\n"
             "|     Image method for efficiently simulating small-room acoustics,|\n"
@@ -32,44 +32,48 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             "|     Society of America, 80(5), November 1986.                    |\n"
             "--------------------------------------------------------------------\n\n"
             "function [h, beta_hat] = rir_generator(c, fs, r, s, L, beta, nsample,\n"
-            " mtype, order, dim, orientation, hp_filter);\n\n"
+            " mtype, order, dim, mic_orientation, hp_filter, stype, source_orientation);\n\n"
             "Input parameters:\n"
-            " c           : sound velocity in m/s.\n"
-            " fs          : sampling frequency in Hz.\n"
-            " r           : M x 3 array specifying the (x,y,z) coordinates of the\n"
-            "               receiver(s) in m.\n"
-            " s           : 1 x 3 vector specifying the (x,y,z) coordinates of the\n"
-            "               source in m.\n"
-            " L           : 1 x 3 vector specifying the room dimensions (x,y,z) in m.\n"
-            " beta        : 1 x 6 vector specifying the reflection coefficients\n"
-            "               [beta_x1 beta_x2 beta_y1 beta_y2 beta_z1 beta_z2] or\n"
-            "               beta = reverberation time (T_60) in seconds.\n"
-            " nsample     : number of samples to calculate, default is T_60*fs.\n"
-            " mtype       : [omnidirectional, subcardioid, cardioid, hypercardioid,\n"
-            "               bidirectional], default is omnidirectional.\n"
-            " order       : reflection order, default is -1, i.e. maximum order.\n"
-            " dim         : room dimension (2 or 3), default is 3.\n"
-            " orientation : direction in which the microphones are pointed, specified using\n"
-            "               azimuth and elevation angles (in radians), default is [0 0].\n"
-            " hp_filter   : use 'false' to disable high-pass filter, the high-pass filter\n"
-            "               is enabled by default.\n\n"
+            " c                  : sound velocity in m/s.\n"
+            " fs                 : sampling frequency in Hz.\n"
+            " r                  : M x 3 array specifying the (x,y,z) coordinates of the\n"
+            "                      receiver(s) in m.\n"
+            " s                  : 1 x 3 vector specifying the (x,y,z) coordinates of the\n"
+            "                      source in m.\n"
+            " L                  : 1 x 3 vector specifying the room dimensions (x,y,z) in m.\n"
+            " beta               : 1 x 6 vector specifying the reflection coefficients\n"
+            "                      [beta_x1 beta_x2 beta_y1 beta_y2 beta_z1 beta_z2] or\n"
+            "                      beta = reverberation time (T_60) in seconds.\n"
+            " nsample            : number of samples to calculate, default is T_60*fs.\n"
+            " mtype              : [omnidirectional, subcardioid, cardioid, hypercardioid,\n"
+            "                      bidirectional], default is omnidirectional.\n"
+            " order              : reflection order, default is -1, i.e. maximum order.\n"
+            " dim                : room dimension (2 or 3), default is 3.\n"
+            " mic_orientation    : direction in which the microphones are pointed, specified using\n"
+            "                      azimuth and elevation angles (in radians), default is [0 0].\n"
+            " hp_filter          : use 'false' to disable high-pass filter, the high-pass filter\n"
+            "                      is enabled by default.\n\n"
+            " stype              : [omnidirectional, subcardioid, cardioid, hypercardioid,\n"
+            "                      bidirectional], default is omnidirectional.\n"
+            " source_orientation : direction in which the source is pointed, specified using\n"
+            "                      azimuth and elevation angles (in radians), default is [0 0].\n"
             "Output parameters:\n"
-            " h           : M x nsample matrix containing the calculated room impulse\n"
-            "               response(s).\n"
-            " beta_hat    : In case a reverberation time is specified as an input parameter\n"
-            "               the corresponding reflection coefficient is returned.\n\n");
+            " h                  : M x nsample matrix containing the calculated room impulse\n"
+            "                      response(s).\n"
+            " beta_hat           : In case a reverberation time is specified as an input parameter\n"
+            "                      the corresponding reflection coefficient is returned.\n\n");
         return;
     }
     else
     {
-        mexPrintf("Room Impulse Response Generator (Version 2.3.20231220) by Emanuel Habets\n"
-            "Copyright (C) 2003-2023 E.A.P. Habets\n");
+        mexPrintf("Room Impulse Response Generator (Version 2.3.20241022) by Emanuel Habets\n"
+            "Copyright (C) 2003-2025 E.A.P. Habets\n");
     }
 
     // Check for proper number of arguments
     if (nrhs < 6)
         mexErrMsgTxt("Error: There are at least six input parameters required.");
-    if (nrhs > 12)
+    if (nrhs > 14)
         mexErrMsgTxt("Error: Too many input arguments.");
     if (nlhs > 2)
         mexErrMsgTxt("Error: Too many output arguments.");
@@ -104,6 +108,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          microphone_angle[2];
     int             isHighPassFilter;
     double          reverberation_time = 0;
+    char*           source_type;
+    double          source_angle[2];
 
     // Reflection coefficients or reverberation time?
     if (mxGetN(prhs[5])==1)
@@ -132,6 +138,44 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             beta[i] = beta_input[i];
     }
 
+    // 3D Source orientation (optional)
+    if (nrhs > 13 &&  mxIsEmpty(prhs[13]) == false)
+    {
+        double* source_orientation = mxGetPr(prhs[13]);
+        if (mxGetN(prhs[13]) == 1)
+        {
+            source_angle[0] = source_orientation[0];
+            source_angle[1] = 0;
+        }
+        else
+        {
+            source_angle[0] = source_orientation[0];
+            source_angle[1] = source_orientation[1];
+        }
+    }
+    else
+    {
+        source_angle[0] = 0;
+        source_angle[1] = 0;
+    }
+
+    // Type of source (optional)
+    if (nrhs > 12 &&  mxIsEmpty(prhs[12]) == false)
+    {
+        int return_value;
+        source_type = new char[mxGetN(prhs[12])+1];        
+        return_value = mxGetString(prhs[12], source_type, mxGetN(prhs[12])+1);
+        if (return_value != 0)
+        {
+            mexErrMsgTxt("The input parameter stype is not a character array!");
+        }
+    }
+    else
+    {
+        source_type = new char[1];
+        source_type[0] = 'o';
+    }
+    
     // High-pass filter (optional)
     if (nrhs > 11 &&  mxIsEmpty(prhs[11]) == false)
     {
@@ -145,16 +189,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // 3D Microphone orientation (optional)
     if (nrhs > 10 &&  mxIsEmpty(prhs[10]) == false)
     {
-        double* orientation = mxGetPr(prhs[10]);
+        double* mic_orientation = mxGetPr(prhs[10]);
         if (mxGetN(prhs[10]) == 1)
         {
-            microphone_angle[0] = orientation[0];
+            microphone_angle[0] = mic_orientation[0];
             microphone_angle[1] = 0;
         }
         else
         {
-            microphone_angle[0] = orientation[0];
-            microphone_angle[1] = orientation[1];
+            microphone_angle[0] = mic_orientation[0];
+            microphone_angle[1] = mic_orientation[1];
         }
     }
     else
@@ -234,7 +278,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[0] = mxCreateDoubleMatrix(nMicrophones, nSamples, mxREAL);
     double* imp = mxGetPr(plhs[0]);
 
-    computeRIR(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type[0], nOrder, microphone_angle, isHighPassFilter);
+    // mexPrintf("microphone_type is %s; microphone_angle=(%f,%f)\n", microphone_type, microphone_angle[0] * 180/3.14159, microphone_angle[1] * 180/3.14159);
+    // mexPrintf("source_type is %s; source_angle=(%f,%f)\n", source_type, source_angle[0] * 180/3.14159, source_angle[1] * 180/3.14159);
+    // mexPrintf("c=%f \n fs=%f \n nMicrophones=%d \n nOrder=%d \n nDimension=%d \n", c, fs, nMicrophones, nOrder, nDimension);
+    // mexPrintf("isHighPassFilter=%d \n reverberation_time=%f \n nSamples=%d \n", isHighPassFilter, reverberation_time, nSamples);
+    computeRIR(imp, c, fs, rr, nMicrophones, nSamples, ss, LL, beta, microphone_type[0], nOrder, microphone_angle, isHighPassFilter, source_type[0], source_angle);
 
     if (nlhs > 1) {
         plhs[1] = mxCreateDoubleMatrix(1, 1, mxREAL);
@@ -248,4 +296,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
     delete[] microphone_type;
+    delete[] source_type;
 }
