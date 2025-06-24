@@ -228,9 +228,9 @@ void computeRIR(double* imp, double c, double fs, double* rr, int nMicrophones, 
                                     fdist = floor(dist);
                                     if (fdist < nSamples)
                                     {
-                                        double source_directivity_pattern = sim_directivity((1 - 2 * q) * Rp_plus_Rm[0],
-                                                                                           (1 - 2 * j) * Rp_plus_Rm[1],
-                                                                                           (1 - 2 * k) * Rp_plus_Rm[2], 
+                                        double source_directivity_pattern = sim_directivity((2*q - 1) * Rp_plus_Rm[0],
+                                                                                           (2*j - 1) * Rp_plus_Rm[1],
+                                                                                           (2*k - 1) * Rp_plus_Rm[2], 
                                                                                            source_angle, source_type);
                                         double mic_directivity_pattern = sim_directivity(Rp_plus_Rm[0], 
                                                                                         Rp_plus_Rm[1], 
